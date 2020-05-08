@@ -1,0 +1,488 @@
+---
+title: "Plyr Package"
+author: "David Asare Kumi"
+date: "4/6/2020"
+output: html_document
+---
+
+
+## plyr: Split-Apply-Combine
+
+- plyr is an R package that makes it simple to split data apart, do stuff to it, and mash it back together. This is a common data-manipulation step. Importantly, plyr makes it easy to control the input and output data format with a consistent syntax.
+
+- Or, from the documentation:
+
+- “plyr is a set of tools that solves a common set of problems: you need to break a big problem down into manageable pieces, operate on each piece and then put all the pieces back together. It’s already possible to do this with split and the apply functions, but plyr just makes it all a bit easier…”
+
+- This is a very quick introduction to plyr. For more details see Hadley Wickham’s introductory guide The split-apply-combine strategy for data analysis. There’s quite a bit of discussion online in general, and especially on stackoverflow.com.
+
+## Why use apply functions instead of for loops?
+
+- The code is cleaner (once you’re familiar with the concept). The code can be easier to code and read, and less error prone because you don’t have to deal with subsetting and you don’t have to deal with saving your results.
+
+- apply functions can be faster than for loops, sometimes dramatically.
+
+## plyr basics
+
+- plyr builds on the built-in apply functions by giving you control over the input and output formats and keeping the syntax consistent across all variations. It also adds some niceties like error processing, parallel processing, and progress bars.
+
+- The basic format is two letters followed by ply(). The first letter refers to the format in and the second to the format out.
+
+- The three main letters are:
+
+1. d = data frame.
+
+2. a = array (includes matrices).
+
+3. l = list.
+
+- So, ddply means: take a data frame, split it up, do something to it, and return a data frame. I find I use this the majority of the time since I often work with data frames. ldply means: take a list, split it up, do something to it, and return a data frame. This extends to all combinations. In the following table, the columns are the input formats and the rows are the output format:
+
+- object type 	dataframe	 list	 array
+
+1. dataframe	   ddply	  ldply	 adply
+
+2. list	         dlply	  llply	 alply
+
+3. array	       daply	  laply	 aaply
+
+- I’ve ignored some less common format options:
+
+1. m = multi-argument function input.
+
+2. r = replicate a function n times.
+
+3. _ = throw away the output.
+
+- For plotting, you might find the underscore (_) option useful. It will do something with the data (say add line segments to a plot) and then throw away the output (e.g., d_ply()).
+
+## Base R apply functions and plyr
+
+- plyr provides a consistent and easy-to-work-with format for apply functions with control over the input and output formats. Some of the functionality can be duplicated with base R functions (but with less consistent syntax). Also, few R apply functions work directly with data frames as input and output and data frames are a common object class to work with.
+
+
+## A general example with plyr
+
+- Let’s take a simple example. We’ll take a data frame, split it up by year, calculate the coefficient of variation of the count, and return a data frame. This could easily be done on one line, but I’m expanding it here to show the format a more complex function could take.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+set.seed(1)
+d <- data.frame(year = rep(2000:2002, each = 3),
+  count = round(runif(9, 0, 20)))
+print(d)
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(plyr)
+ddply(d, "year", function(x) {
+  mean.count <- mean(x$count)
+  sd.count <- sd(x$count)
+  cv <- sd.count/mean.count
+  data.frame(cv.count = cv)
+})
+
+```
+
+
+## transform and summarise
+
+- It is often convenient to use these functions within one of the **ply functions. transform acts as it would normally as the base R function and modifies an existing data frame. summarise creates a new condensed data frame.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+ddply(d, "year", summarise, mean.count = mean(count))
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+ddply(d, "year", transform, total.count = sum(count))
+
+```
+
+- Bonus function: mutate. mutate works like transform but lets you build on columns.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+ddply(d, "year", mutate, mu = mean(count), sigma = sd(count),
+  cv = sigma/mu)
+
+```
+
+## Plotting with plyr
+
+- You can use plyr to plot data by throwing away the output with an underscore (_). This is a bit cleaner than a for loop since you don’t have to subset the data manually.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+par(mfrow = c(1, 3), mar = c(2, 2, 1, 1), oma = c(3, 3, 0, 0))
+d_ply(d, "year", transform, plot(count, main = unique(year), type = "o"))
+mtext("count", side = 1, outer = TRUE, line = 1)
+mtext("frequency", side = 2, outer = TRUE, line = 1)
+
+```
+
+## Nested chunking of the data
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+baseball.dat <- subset(baseball, year > 2000) # data from the plyr package
+x <- ddply(baseball.dat, c("year", "team"), summarize,
+  homeruns = sum(hr))
+head(x)
+
+```
+
+## Other useful options
+
+### Dealing with errors
+
+- You can use the failwith function to control how errors are dealt with.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+f <- function(x) if (x == 1) stop("Error!") else 1
+safe.f <- failwith(NA, f, quiet = TRUE)
+# llply(1:2, f)
+llply(1:2, safe.f)
+
+```
+
+## Parallel processing
+
+- In conjunction with a package such as doParallel you can run your function separately on each core of your computer. On a dual core machine this make your code up to twice as fast. Simply register the cores and then set .parallel = TRUE. Look at the elapsed time in these examples:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+x <- c(1:10)
+wait <- function(i) Sys.sleep(0.1)
+system.time(llply(x, wait))
+system.time(sapply(x, wait))
+
+```
+
+## So, why would I not want to use plyr?
+
+- plyr can be slow — particularly if you are working with very large datasets that involve a lot of subsetting. Hadley is working on this and an in-development version of plyr, dplyr, can run much faster (https://github.com/hadley/dplyr). However, it’s important to remember that typically the speed that you can write code and understand it later is the rate-limiting step.
+
+
+## Some examples using the package plyr
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(plyr)
+#Example dataset from ggplot
+library(ggplot2)
+data(mpg)
+str(mpg)
+
+#Simplify the dataset
+data <- mpg[,c(1,7:9)]
+str(data)
+
+# Summarising/ Aggregating Data
+
+ddply(data, .(manufacturer), summarize, avgcty = mean(cty))
+
+# you can perform multiple functions in a single call
+
+ddply(data, .(manufacturer), summarize, avgcty = mean(cty), sdcty = sd(cty), maxhwy = max(hwy))
+
+# you can summarize data by a combination of variables/factors
+
+ddply(data, .(manufacturer, drv), summarize, avgcty = mean(cty), sdcty = sd(cty), maxhwy = max(hwy))
+
+# note the package reshape/reshape2 is an elegant alternative for aggregating many variables at one time
+
+# note the differences between the commands "summarize" and "transform"
+
+ddply(data, .(drv), summarize, avgcty = mean(cty))
+ddply(data, .(drv), transform, avgcty = mean(cty))
+
+# transform is very useful standardizing/normalizing
+
+ddply(data, .(drv), transform, delta = mean(cty)-cty)
+
+# Now let's use plyr to run a simple loop
+
+# We'll ask the question: Does city mpg  differ between car manufacturers, for each class of    drivetrains (4x4, forward, or rear-wheel drive)? Let's try to automate these ANOVAs and extract the F-statistics and P-values from the ANOVAs.
+
+# Step1: create function to run ANOVA
+
+model <- function(data) { aov(cty~manufacturer, data=data) }
+
+# Step 2: Use plyr to run model for each and create list (called anova.output) to store output for  each drivetrain. For dlply, the syntax means d for input data is data frame and l for output data is list.
+
+anova.output <- dlply(data, .(drv), model)
+
+# Step 3: Create function that tells R where to find F-statistic and P-value in the output within  the list. The output is somewhat hidden in this example- don't worry about the messy indexing  here-- what's important is that this just tells R where the F-stats and P-values are stored. 
+
+juicy <- function(x) { c(summary(x)[[1]][["F value"]][[1]], 
+  	summary(x)[[1]][["Pr(>F)"]][[1]]) }
+
+# Step 4: Extract components of model output from the list created in previous step. For ldply, the  syntax is: input is list and output is data frame. Note that since the input is a list, we don't  have to indicate the 2nd parameter (which variable(s) to apply the function to, as the default is  to apply function to all elements of the list.) 
+
+ldply(anova.output, juicy)
+
+# The data frame shows F-statistics (V1) and P-values (V2) for the ANOVAs by drivetrain.
+
+# We could always condense some of the above steps as well:
+
+anova.output <- dlply(data, .(drv), function(data) aov(cty~manufacturer, data=data))
+ldply(anova.output, function(x) { c(summary(x)[[1]][["F value"]][[1]], summary(x)[[1]][["Pr(>F)"]][[1]]) })
+
+# Note that there are many shortcuts that plyr uses, such as the functions colwis(), each() and splat(). You can always refer to the original article: http://www.jstatsoft.org/v40/i01/ for more on this.
+
+```
+
+## Using gapminder dataset
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+data(gapminder)
+str(gapminder)
+head(gapminder)
+
+```
+
+## We want to know the number of countries
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+library(plotly)
+data(gapminder)
+
+get.n.countries<-function(x)length(unique(x$country))
+
+#use daply
+gap_country<-daply(gapminder,.(continent),get.n.countries)
+gap_country
+
+#use ddply
+gap_country<-ddply(gapminder,.(continent),function(x)length(unique(x$country)))
+gap_country
+
+#use ddply and plot a bargraph
+gap_country<-ddply(gapminder,.(continent),summarise,totalcountries=length(unique(country)))
+gap_country
+g<-ggplot(gap_country,aes(x=continent,y=totalcountries,fill=continent))+geom_bar(stat="identity")+
+geom_text(aes(label=gap_country$totalcountries),nudge_y=1)+xlab("Continent")+ylab("Total Countries")+
+  ggtitle("Barplot of Total Countries in each Continent")
+ggplotly(g)
+
+```
+
+## Sum total population in a dataframe
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+#first write the function
+get.total.pop<-function(x)sum(x$pop)
+
+#use daply
+gap_pop<-daply(gapminder,.(continent),get.total.pop)
+gap_pop
+
+#use ddply
+gap_pop<-ddply(gapminder,.(continent),get.total.pop)
+gap_pop
+
+#We note that the pop has been exagerated so we add another variable to the list of splitting criteria.
+gap_pop<-ddply(gapminder,.(continent,year),get.total.pop)
+gap_pop
+
+```
+
+## Maximum gdpPercap on each continent
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+max_gdp<-ddply(gapminder,.(continent,year),function(x)max(x$gdpPercap))
+max_gdp
+
+DT::datatable(max_gdp,options=list(pageLength=10))
+
+```
+
+## An example returning a list
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+get.countries<-function(x)unique(x$country)
+
+#use dlply
+countries<-dlply(gapminder,.(continent),function(x)unique(x$country))
+countries
+
+countries<-dlply(gapminder,.(continent),get.countries)
+countries
+
+```
+
+## Feed data into a model one by one returning fits to a list of models
+
+- First see if you can write a function that given a data frame x fits a model to data.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+model<-function(x){
+  lm(lifeExp~log10(gdpPercap),data=gapminder)
+}
+
+#Now let's try it on a subset of data
+fit<-model(data[data$year==1982 & data$continent=="Asia",])
+fit
+
+# Now let's apply it all continents in all years
+
+fitted.linear.model<-dlply(gapminder,.(continent,year),model)
+
+coef(fitted.linear.model[[1]])
+
+ldply(fitted.linear.model,coef)
+
+#we want the r2 too
+ldply(fitted.linear.model,function(x)summary(x)$r.squared)
+
+```
+
+## We want model function to return the desired output
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+model<-function(x){
+  fit<-lm(lifeExp~log10(gdpPercap),data=gapminder)
+  data.frame(n=length(x$lifeExp),r2=summary(fit)$r.squared,a=coef(fit)[[1]],b=coef(fit)[[2]])
+}
+
+#Then apply ddply
+ddply(gapminder,.(continent,year),model)
+
+```
+
+## As a final extension
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+model<-function(d,x,y){
+  fit<-lm(d[[y]]~log10(d[[x]]))
+  data.frame(n=length(d[[y]]),r2=summary(fit)$r.squared,a=coef(fit)[1],b=coef(fit)[2])
+}
+
+ddply(gapminder,.(continent,year),model,y="lifeExp",x="gdpPercap")
+
+ddply(gapminder,.(continent,year),model,y="lifeExp",x="pop")
+
+```
+
+- In just 6 lines we can fit about 120 linear models and return two tables summarising these models. This is how powerful plyr is.
+
+## Simplifying plots with plyr
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+col.table<-c("red","blue","green","orange")
+gapminder.1982<-subset(gapminder,year==1982)
+
+add.trend.line<-function(x,y,d,...){
+  fit<-lm(d[[y]]~log10(d[[x]]))
+  abline(fit,...)
+}
+
+#recall functions and objects created in the functions lesson
+colour.by.category<-function(x,table){
+  unname(table[x])
+}
+rescale<-function(x,r.out){
+  p<-(x-min(x))/(max(x)-min(x))
+  r.out[[1]]+p*(r.out[[2]]-r.out[[1]])
+}
+col<-colour.by.category(gapminder.1982$continent,col.table)
+cex<-rescale(sqrt(gapminder.1982$pop),c(0.2,10))
+#now use function add.trend.line
+plot(lifeExp~gdpPercap,gapminder.1982,log="x",cex=cex,col=col,pch=21)
+d_ply(gapminder.1982,.(continent),function(x)add.trend.line("gdpPercap","lifeExp",x,col=col.table[x$continent]))
+
+```
+
+- One way to avoid repetition is to pass the add.trend.line function into d_ply. The underscore in d_ply tells us that we don't want any output, we just want to run the function.
+
+## Summarise
+
+- For summaries of the whole dataset, you can call summarise directly.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+summarise(gapminder,pop.mean=mean(pop),pop.var=var(pop),pop.max=max(pop))
+
+#But if you want to split by groups, you need to combine with ddply
+
+ddply(gapminder,.(continent,year),summarise,pop.mean=mean(pop),pop.var=var(pop),pop.max=max(pop))
+
+```
+
+- If we are calling each directly, the format is different.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(gapminder)
+library(plyr)
+library(ggplot2)
+library(dplyr)
+library(DT)
+data(gapminder)
+
+ddply(gapminder,.(continent,year),function(x)sum(x$pop))
+ddply(gapminder,.(continent,year),function(x)var(x$pop))
+ddply(gapminder,.(continent,year),function(x)max(x$pop))
+
+```
+

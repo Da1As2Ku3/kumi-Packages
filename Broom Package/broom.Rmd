@@ -1,0 +1,750 @@
+---
+title: "Broom Package"
+author: "David Asare Kumi"
+date: "4/17/2020"
+output: html_document
+---
+
+
+## Overview
+
+- broom summarizes key information about models in tidy tibble()s. broom provides three verbs to make it convenient to interact with model objects:
+
+1. tidy() summarizes information about model components.
+
+2. glance() reports information about the entire model.
+
+3. augment() adds informations about observations to a dataset.
+
+## Usage
+
+- tidy() produces a tibble() where each row contains information about an important component of the model. For regression models, this often corresponds to regression coefficients. This is can be useful if you want to inspect a model or create custom visualizations.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(iris)
+
+fit <- lm(Sepal.Width ~ Petal.Length + Petal.Width, iris)
+tidy(fit)
+
+```
+
+- glance() returns a tibble with exactly one row of goodness of fitness measures and related statistics. This is useful to check for model misspecification and to compare many models.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(iris)
+
+glance(fit)
+
+```
+
+- augment adds columns to a dataset, containing information such as fitted values, residuals or cluster assignments. All columns added to a dataset have . prefix to prevent existing columns from being overwritten.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(iris)
+
+augment(fit, data = iris)
+
+```
+
+## Example: linear regression
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+fit <- lm(mpg ~ wt + qsec, mtcars)
+summary(fit)
+
+```
+
+- This summary shows many kinds of statistics describing the regression: coefficient estimates and p-values, information about the residuals, and model statistics like $R^2$ and the F statistic. But this format isn’t convenient if you want to combine and compare multiple models, or plot it using ggplot2: you need to turn it into a data frame.
+
+- The broom package provides three tidying methods for turning the contents of this object into a data frame, depending on the level of statistics you’re interested in. If you want statistics about each of the coefficients fit by the model, use the tidy() method:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+tidy(fit)
+
+```
+
+- Note that the rownames are now added as a column, term, meaning that the data can be combined with other models. Note also that the columns have been given names like std.error and p.value that are more easily accessed than Std. Error and Pr(>|t|). This is true of all data frames broom returns: they’re designed so they can be processed in additional steps.
+
+- If you’re interested in extracting per-observation information, such as fitted values and residuals, use the augment() method, which adds these to the original data:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+head(augment(fit))
+
+```
+
+- Finally, glance() computes per-model statistics, such as $R^2$, AIC, and BIC:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+glance(fit)
+
+```
+
+- As pointed out by Mike Love, the tidy method makes it easy to construct coefficient plots using ggplot2:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+td <- tidy(fit, conf.int = TRUE)
+ggplot(td, aes(estimate, term, color = term)) +
+    geom_point() +
+    geom_errorbarh(aes(xmin = conf.low, xmax = conf.high)) + 
+    geom_vline(xintercept=0)
+    
+```
+
+- When combined with dplyr’s group_by and do, broom also lets you perform regressions within groups, such as within automatic and manual cars separately:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+mtcars %>% group_by(am) %>% do(tidy(lm(mpg ~ wt, .)))
+
+```
+
+- This is useful for performing regressions or other analyses within each gene, country, or any other kind of division in your tidy dataset.
+
+## Using tidiers for visualization with ggplot2
+
+- The broom package provides tidying methods for many other packages as well. These tidiers serve to connect various statistical models seamlessly with packages like dplyr and ggplot2. For instance, we could create a LASSO regression with the glmnet package:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+library(glmnet)
+set.seed(03-19-2015)
+
+# generate data with 5 real variables and 45 null, on 100 observations
+nobs <- 100
+nvar <- 50
+real <- 5
+x <- matrix(rnorm(nobs * nvar), nobs)
+beta <- c(rnorm(real, 0, 1), rep(0, nvar - real))
+y <- c(t(beta) %*% t(x)) + rnorm(nvar, sd = 3)
+
+glmnet_fit <- cv.glmnet(x,y)
+
+```
+
+- Then we tidy it with broom and plot it using ggplot2:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+library(glmnet)
+set.seed(03-19-2015)
+
+nobs <- 100
+nvar <- 50
+real <- 5
+x <- matrix(rnorm(nobs * nvar), nobs)
+beta <- c(rnorm(real, 0, 1), rep(0, nvar - real))
+y <- c(t(beta) %*% t(x)) + rnorm(nvar, sd = 3)
+
+glmnet_fit <- cv.glmnet(x,y)
+
+tidied_cv <- tidy(glmnet_fit)
+glance_cv <- glance(glmnet_fit)
+
+ggplot(tidied_cv, aes(lambda, estimate)) + geom_line(color = "red") +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2) +
+    scale_x_log10() +
+    geom_vline(xintercept = glance_cv$lambda.min) +
+    geom_vline(xintercept = glance_cv$lambda.1se, lty = 2)
+
+```
+
+- By plotting with ggplot2 rather than relying on glmnet’s built-in plotting methods, we gain access to all the tools and framework of the package. This allows us to customize or add attributes, or even to compare multiple LASSO cross-validations in the same plot. The same is true of the survival package:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+library(glmnet)
+set.seed(03-19-2015)
+
+library(survival)
+
+surv_fit <- survfit(coxph(Surv(time, status) ~ age + sex, lung))
+
+td <- tidy(surv_fit)
+ggplot(td, aes(time, estimate)) + geom_line() +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2)
+
+
+```
+
+- Others have explored how broom can help visualize random effects estimated with lme4. Other packages for which tidiers are implemented include gam, zoo, lfe, and multcomp.
+
+- The vignettes for the broom package offer other useful examples, including one on combining broom and dplyr, a demonstration of bootstrapping with broom, and a simulation of k-means clustering. The broom manuscript offers still more examples.
+
+- Tidying model outputs is not an exact science, and it is based on a judgment of the kinds of values a data scientist typically wants out of a tidy analysis (for instance, estimates, test statistics, and p-values). It is my hope that data scientists will propose and contribute their own features feature requests are welcome!) to help expand the universe of tidy analysis tools.
+
+## Generalized linear and non-linear models
+
+- These functions apply equally well to the output from glm:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+glmfit <- glm(am ~ wt, mtcars, family="binomial")
+tidy(glmfit)
+
+augment(glmfit)
+
+glance(glmfit)
+
+```
+
+- Note that the statistics computed by glance are different for glm objects than for lm (e.g. deviance rather than R^2):
+
+- These functions also work on other fits, such as nonlinear models (nls):
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+nlsfit <- nls(mpg ~ k / wt + b, mtcars, start=list(k=1, b=0))
+tidy(nlsfit)
+
+augment(nlsfit,mtcars)
+
+glance(nlsfit)
+
+```
+
+## Hypothesis testing
+
+- The tidy function can also be applied to htest objects, such as those output by popular built-in functions like t.test, cor.test, and wilcox.test.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+tt <- t.test(wt ~ am, mtcars)
+tidy(tt)
+
+#Some cases might have fewer columns (for example, no confidence interval):
+
+wt <- wilcox.test(wt ~ am, mtcars)
+tidy(wt)
+
+#glance
+glance(tt)
+glance(wt)
+
+```
+
+- augment method is defined only for chi-squared tests, since there is no meaningful sense, for other tests, in which a hypothesis test produces output about each initial data point.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+data(mtcars)
+
+chit <- chisq.test(xtabs(Freq ~ Sex + Class, data = as.data.frame(Titanic)))
+tidy(chit)
+
+augment(chit)
+
+glance(chit)
+
+```
+
+## Conventions
+
+- In order to maintain consistency, we attempt to follow some conventions regarding the structure of returned data.
+
+## All functions
+
+- The output of the tidy, augment and glance functions is always a data frame.
+
+- The output never has rownames. This ensures that you can combine it with other tidy outputs without fear of losing information (since rownames in R cannot contain duplicates).
+
+- Some column names are kept consistent, so that they can be combined across different models and so that you know what to expect (in contrast to asking “is it pval or PValue?” every time). The examples below are not all the possible column names, nor will all tidy output contain all or even any of these columns.
+
+## tidy functions
+
+- Each row in a tidy output typically represents some well-defined concept, such as one term in a regression, one test, or one cluster/class. This meaning varies across models but is usually self-evident. The one thing each row cannot represent is a point in the initial data (for that, use the augment method).
+
+- Common column names include:
+
+1. term"" the term in a regression or model that is being estimated.
+
+2. p.value: this spelling was chosen (over common alternatives such as pvalue, PValue, or pval) to be consistent with functions in R’s built-in stats package
+
+3.statistic a test statistic, usually the one used to compute the p-value. Combining these across many sub-groups is a reliable way to perform (e.g.) bootstrap hypothesis testing
+
+4. estimate
+
+5. conf.low the low end of a confidence interval on the estimate.
+
+6. conf.high the high end of a confidence interval on the estimate.
+
+7. df degrees of freedom.
+
+## augment functions
+
+- augment(model, data) adds columns to the original data.
+
+- If the data argument is missing, augment attempts to reconstruct the data from the model (note that this may not always be possible, and usually won’t contain columns not used in the model).
+
+- Each row in an augment output matches the corresponding row in the original data.
+
+- If the original data contained rownames, augment turns them into a column called .rownames.
+
+- Newly added column names begin with . to avoid overwriting columns in the original data.
+
+- Common column names include:
+
+- .fitted: the predicted values, on the same scale as the data.
+
+- .resid: residuals: the actual y values minus the fitted values.
+
+- .cluster: cluster assignments.
+
+## glance functions
+
+- glance always returns a one-row data frame.
+
+- The only exception is that glance(NULL) returns an empty data frame.
+
+- We avoid including arguments that were given to the modeling function. For example, a glm glance output does not need to contain a field for family, since that is decided by the user calling glm rather than the modeling function itself.
+
+- Common column names include:
+
+- r.squared the fraction of variance explained by the model.
+
+- adj.r.squared R^2 adjusted based on the degrees of freedom.
+
+- sigma the square root of the estimated variance of the residuals.
+
+
+## broom and dplyr
+
+- While broom is useful for summarizing the result of a single analysis in a consistent format, it is really designed for high-throughput applications, where you must combine results from multiple analyses. These could be subgroups of data, analyses using different models, bootstrap replicates, permutations, and so on. In particular, it plays well with the nest/unnest functions in tidyr and the map function in purrr.
+
+- Let’s try this on a simple dataset, the built-in Orange. We start by coercing Orange to a tibble. This gives a nicer print method that will especially useful later on when we start working with list-columns.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+data(mtcars)
+data(Orange)
+
+Orange <- as_tibble(Orange)
+Orange
+
+```
+
+- This contains 35 observations of three variables: Tree, age, and circumference. Tree is a factor with five levels describing five trees. As might be expected, age and circumference are correlated:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+data(mtcars)
+data(Orange)
+
+cor(Orange$age,Orange$circumference)
+
+ggplot(Orange, aes(age, circumference, color = Tree)) +
+  geom_line()
+
+```
+
+- Suppose you want to test for correlations individually within each tree. You can do this with dplyr’s group_by:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+data(mtcars)
+data(Orange)
+
+Orange %>% 
+  group_by(Tree) %>%
+  summarize(correlation = cor(age, circumference))
+
+```
+
+- (Note that the correlations are much higher than the aggregated one, and furthermore we can now see it is similar across trees).
+
+- Suppose that instead of simply estimating a correlation, we want to perform a hypothesis test with cor.test:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+data(mtcars)
+data(Orange)
+
+ct <- cor.test(Orange$age, Orange$circumference)
+ct
+
+```
+
+- This contains multiple values we could want in our output. Some are vectors of length 1, such as the p-value and the estimate, and some are longer, such as the confidence interval. We can get this into a nicely organized tibble using the tidy function:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+data(mtcars)
+data(Orange)
+
+tidy(ct)
+
+```
+
+- Often, we want to perform multiple tests or fit multiple models, each on a different part of the data. In this case, we recommend a nest-map-unnest workflow. For example, suppose we want to perform correlation tests for each different tree. We start by nesting our data based on the group of interest:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+nested <- Orange %>% 
+  nest(-Tree)
+
+```
+
+- Then we run a correlation test for each nested tibble using purrr::map:
+
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+nested %>% 
+  mutate(test = map(data, ~ cor.test(.x$age, .x$circumference)))
+
+```
+
+- This results in a list-column of S3 objects. We want to tidy each of the objects, which we can also do with map.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+nested %>% 
+  mutate(
+    test = map(data, ~ cor.test(.x$age, .x$circumference)), # S3 list-col
+    tidied = map(test, tidy)
+  ) 
+
+```
+
+- Finally, we want to unnest the tidied data frames so we can see the results in a flat tibble. All together, this looks like:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+Orange %>% 
+  nest(-Tree) %>% 
+  mutate(
+    test = map(data, ~ cor.test(.x$age, .x$circumference)), # S3 list-col
+    tidied = map(test, tidy)
+  ) %>% 
+  unnest(tidied, .drop = TRUE)
+
+```
+
+- Note that the .drop argument to tidyr::unnest is often useful.
+
+- This workflow becomes even more useful when applied to regressions. Untidy ouput for a regression looks like:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+lm_fit <- lm(age ~ circumference, data = Orange)
+summary(lm_fit)
+
+```
+
+- where we tidy these results, we get multiple rows of output for each model:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+tidy(lm_fit)
+
+```
+
+- Now we can handle multiple regressions at once using exactly the same workflow as before:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+Orange %>%
+  nest(-Tree) %>% 
+  mutate(
+    fit = map(data, ~ lm(age ~ circumference, data = .x)),
+    tidied = map(fit, tidy)
+  ) %>% 
+  unnest(tidied)
+
+```
+
+- You can just as easily use multiple predictors in the regressions, as shown here on the mtcars dataset. We nest the data into automatic and manual cars (the am column), then perform the regression within each nested tibble.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+data(mtcars)
+mtcars <- as_tibble(mtcars)  # to play nicely with list-cols
+mtcars
+
+mtcars %>%
+  nest(-am) %>% 
+  mutate(
+    fit = map(data, ~ lm(wt ~ mpg + qsec + gear, data = .x)),  # S3 list-col
+    tidied = map(fit, tidy)
+  ) %>% 
+  unnest(tidied)
+
+```
+
+- What if you want not just the tidy output, but the augment and glance outputs as well, while still performing each regression only once? Since we’re using list-columns, we can just fit the model once and use multiple list-columns to store the tidied, glanced and augmented outputs.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(gridExtra)
+library(Lahman)
+library(broom)
+library(tibble)
+library(purrr)
+data(mtcars)
+data(Orange)
+
+regressions <- mtcars %>%
+  nest(-am) %>% 
+  mutate(
+    fit = map(data, ~ lm(wt ~ mpg + qsec + gear, data = .x)),
+    tidied = map(fit, tidy),
+    glanced = map(fit, glance),
+    augmented = map(fit, augment)
+  )
+
+regressions %>% 
+  unnest(tidied)
+
+regressions %>%
+  unnest(glanced,.drop=TRUE)
+
+regressions %>%
+  unnest(augmented)
+
+```
+
+- By combining the estimates and p-values across all groups into the same tidy data frame (instead of a list of output model objects), a new class of analyses and visualizations becomes straightforward. This includes
+
+1. Sorting by p-value or estimate to find the most significant terms across all tests.
+
+2. P-value histograms.
+
+3. Volcano plots comparing p-values to effect size estimates.
+
+- In each of these cases, we can easily filter, facet, or distinguish based on the term column. In short, this makes the tools of tidy data analysis available for the results of data analysis and models, not just the inputs.
+
+
+
+
+
+
+
+

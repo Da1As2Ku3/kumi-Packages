@@ -1,0 +1,1768 @@
+---
+title: "GGplot2"
+author: "David Asare Kumi"
+date: "4/12/2020"
+output: html_document
+---
+
+
+## Introduction
+
+- ggplot2 is an R package for producing statistical, or data, graphics, but it is unlike most other graphics packages because it has a deep underlying grammar.This grammar, based on the Grammar of Graphics (Wilkinson, 2005), is made up of a set of independent components that can be composed in many different ways. This makes ggplot2 very powerful because you are not limited to a set of pre-specified graphics, but you can create new graphics that are precisely tailored for your problem. This may sound overwhelming, but because there is a simple set of core principles and very few special cases, ggplot2 is also easy to learn (although it may take a little time to forget your preconceptions from other graphics tools).
+
+- Practically, ggplot2 provides beautiful, hassle-free plots that take care of fiddly details like drawing legends. The plots can be built up iteratively and edited later. A carefully chosen set of defaults means that most of the time you can produce a publication-quality graphic in seconds, but if you do have special formatting requirements, a comprehensive theming system makes it easy to do what you want. Instead of spending time making your graph look pretty, you can focus on creating a graph that best reveals the messages in your data.
+
+## What Is the Grammar of Graphics?
+
+- Wilkinson (2005) created the grammar of graphics to describe the deep features that underlie all statistical graphics. The grammar of graphics is an answer to a question: what is a statistical graphic? The layered grammar of graphics (Wickham, 2010) builds on Wilkinson’s grammar, focussing on the primacy of layers and adapting it for embedding within R. In brief, the grammar tells us that a statistical graphic is a mapping from data to aesthetic attributes (colour, shape, size) of geometric objects (points, lines, bars). The plot may also contain statistical transformations of the data and is drawn on a specific coordinate system. Facetting can be used to generate the same plot for different subsets of the dataset. It is the combination of these independent components that make up a graphic.
+
+- As the book progresses, the formal grammar will be explained in increasing detail. The first description of the components follows below. It introduces some of the terminology that will be used throughout the book and outlines the basic responsibilities of each component. Don’t worry if it doesn’t all make sense right away: you will have many more opportunities to learn about the pieces and how they fit together.
+All plots are composed of:
+
+1. Data that you want to visualise and a set of aesthetic mappings describing how variables in the data are mapped to aesthetic attributes that you can perceive.
+
+2. Layers made up of geometric elements and statistical transformation. Geometric objects, geoms for short, represent what you actually see on the plot: points, lines, polygons, etc. Statistical transformations, stats for short, summarise data in many useful ways. For example, binning and
+counting observations to create a histogram, or summarising a 2d relationship with a linear model.
+
+3. The scales map values in the data space to values in an aesthetic space, whether it be colour, or size, or shape. Scales draw a legend or axes, which provide an inverse mapping to make it possible to read the original data values from the plot.
+
+4. A coordinate system, coord for short, describes how data coordinates are mapped to the plane of the graphic. It also provides axes and gridlines to make it possible to read the graph.We normally use a Cartesian coordinate system, but a number of others are available, including polar coordinates
+and map projections.
+
+5. A faceting specification describes how to break up the data into subsets and how to display those subsets as small multiples. This is also known as conditioning or latticing/trellising.
+
+6. A theme which controls the finer points of display, like the font size and background colour. While the defaults in ggplot2 have been chosen with care, you may need to consult other references to create an attractive plot. A good starting place is Tufte’s early works (Tufte, 1990, 1997, 2001).
+
+- It is also important to talk about what the grammar doesn’t do:
+
+1. It doesn’t suggest what graphics you should use to answer the questions you are interested in. While this book endeavours to promote a sensible process for producing plots of data, the focus of the book is on how to produce the plots you want, not knowing what plots to produce. For more advice on this topic, you may want to consult Robbins (2013), Cleveland (1993), Chambers et al. (1983), and Tukey (1977).
+
+2. It does not describe interactivity: the grammar of graphics describes only static graphics and there is essentially no benefit to displaying them on a computer screen as opposed to a piece of paper. ggplot2 can only create static graphics, so for dynamic and interactive graphics you will have to look elsewhere (perhaps at ggvis, described below). Cook and Swayne (2007) provides an excellent introduction to the interactive graphics package GGobi. GGobi can be connected to R with the rggobi package (Wickham et al., 2008).
+
+## How Does ggplot2 Fit in with Other R Graphics?
+
+- There are a number of other graphics systems available in R: base graphics, grid graphics and trellis/lattice graphics. How does ggplot2 differ from them?
+
+- ggplot2, started in 2005, is an attempt to take the good things about base and lattice graphics and improve on them with a strong underlying model which supports the production of any kind of statistical graphic, based on the principles outlined above. The solid underlying model of ggplot2 makes it easy to describe a wide range of graphics with a compact syntax, and independent components make extension easy. Like lattice, ggplot2 uses grid to draw the graphics, which means you can exercise much low-level
+control over the appearance of the plot.
+
+- Work on ggvis, the successor to ggplot2, started in 2014. It takes the foundational ideas of ggplot2 but extends them to the web and interactive graphics. The syntax is similar, but it’s been re-designed from scratch to take advantage of what I’ve learned in the 10 years since creating ggplot2.
+The most exciting thing about ggvis is that it’s interactive and dynamic, so plots automatically re-draw themselves when the underlying data or plot specification changes. However, ggvis is work in progress and currently can create only a fraction of the plots in ggplot2 can. Stay tuned for updates!
+
+- htmlwidgets, http://www.htmlwidgets.org, provides a common framework for accessing web visualisation tools from R. Packages built on top of htmlwidgets include leaflet (https://rstudio.github.io/leaflet/,
+maps), dygraph (http://rstudio.github.io/dygraphs/, time series) and networkD3 (http://christophergandrud.github.io/networkD3/,networks). htmlwidgets is to ggvis what the many specialised graphic packages are to ggplot2: it provides graphics honed for specific purposes.
+
+- Many other R packages, such as vcd (Meyer et al., 2006), plotrix (Lemon et al., 2006) and gplots (Warnes, 2015), implement specialist graphics, but no others provide a framework for producing statistical graphics. A comprehensive list of all graphical tools available in other packages can be
+found in the graphics task view at http://cran.r-project.org/web/views/ Graphics.html.
+
+## Installation
+
+- To use ggplot2, you must first install it. Make sure you have a recent version of R (at least version 3.2.0) from http://r-project.org and then run the following code to download and install ggplot2:
+
+- install.packages("ggplot2").
+
+## Getting Started with ggplot2
+
+### Introduction
+
+- The goal of this chapter is to teach you how to produce useful graphics with ggplot2 as quickly as possible. You’ll learn the basics of ggplot() along with some useful “recipes” to make the most important plots. ggplot() allows you to make complex plots with just a few lines of code because it’s based on a rich underlying theory, the grammar of graphics. Here we’ll skip the theory and focus on the practice, and in later chapters you’ll learn how to use the full expressive power of the grammar.
+
+## Key Components
+
+- Every ggplot2 plot has three key components:
+
+1. data,
+
+2. A set of aesthetic mappings between variables in the data and visual
+properties, and
+
+3. At least one layer which describes how to render each observation. Layers
+are usually created with a geom function.
+
+### Example
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(mpg, aes(x = displ, y = hwy)) + geom_point()
+
+```
+
+- This produces a scatterplot defined by:
+
+1. Data: mpg.
+
+2. Aesthetic mapping: engine size mapped to x position, fuel economy to y
+position.
+
+3. Layer: points.
+
+## Exercises
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(mpg, aes(model, manufacturer)) + geom_point()
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(mpg, aes(cty, hwy)) + geom_point()
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(diamonds, aes(carat, price)) + geom_point()
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(economics, aes(date, unemploy)) + geom_line()
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(mpg, aes(cty)) + geom_histogram()
+
+```
+
+
+## Colour, Size, Shape and Other Aesthetic Attributes
+
+- To add additional variables to a plot, we can use other aesthetics like colour, shape, and size (NB:while I use British spelling throughout this book, ggplot2 also accepts American spellings). These work in the same way as the x and y aesthetics, and are added into the call to aes():
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+
+ggplot(mpg, aes(displ, cty, colour = class)) + geom_point()
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+g1<-ggplot(mpg, aes(displ, hwy)) + geom_point(aes(colour = "blue"))
+g2<-ggplot(mpg, aes(displ, hwy)) + geom_point(colour = "blue")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- In the first plot, the value “blue” is scaled to a pinkish colour, and a legend is added. In the second plot, the points are given the R colour blue. This is an important technique and you’ll learn more about it in Sect. 5.4.2. See vignette("ggplot2-specs") for the values needed for colour and other aesthetics.
+
+## Facetting
+
+- Another technique for displaying additional categorical variables on a plot is facetting. Facetting creates tables of graphics by splitting the data into subsets and displaying the same graph for each subset. You’ll learn more about facetting in Sect. 7.2, but it’s such a useful technique that you need to know it right away.
+
+- There are two types of facetting: grid and wrapped. Wrapped is the most useful, so we’ll discuss it here, and you can learn about grid facetting later. To facet a plot you simply add a facetting specification with facet wrap(), which takes the name of a variable preceded by ~.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + facet_wrap(~class)
+
+```
+
+### Example of facet_grid plus regression line(lm)
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + facet_grid(.~class)+geom_smooth(method="lm",se=FALSE)
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + facet_grid(class~.)+geom_smooth(method="lm",se=FALSE)
+
+```
+
+
+## Adding a Smoother to a Plot
+
+- If you have a scatterplot with a lot of noise, it can be hard to see the dominant pattern. In this case it’s useful to add a smoothed line to the plot with geom smooth():
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth()
+
+```
+
+- This overlays the scatterplot with a smooth curve, including an assessment of uncertainty in the form of point-wise confidence intervals shown in grey. If you’re not interested in the confidence interval, turn it off with geom smooth(se= FALSE). An important argument to geom smooth() is the method, which allows you to choose which type of model is used to fit the smooth curve:
+
+- method = "loess", the default for small n, uses a smooth local regression
+(as described in ?loess). The wiggliness of the line is controlled by the span
+parameter, which ranges from 0 (exceedingly wiggly) to 1 (not so wiggly).
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+
+g1<-ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth(span = 0.2)
+
+g2<-ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth(span = 1)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- Loess does not work well for large datasets (it’s O(n2) in memory), so an alternative smoothing algorithm is used when n is greater than 1000.
+
+- method = "gam" fits a generalised additive model provided by the mgcv package. You need to first load mgcv, then use a formula like formula = y~ s(x) or y ~ s(x, bs = "cs") (for large data). This is what ggplot2 uses when there are more than 1000 points.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth(method = "gam", formula = y ~ s(x))
+
+```
+
+- method = "lm" fits a linear model, giving the line of best fit.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth(method = "lm")
+
+```
+
+
+- method = "rlm" works like lm(), but uses a robust fitting algorithm so that outliers don’t affect the fit as much. It’s part of the MASS package, so remember to load that first.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+ggplot(mpg, aes(displ, hwy)) + geom_point() + geom_smooth(method = "rlm")
+
+```
+
+## Boxplots and Jittered Points
+
+- When a set of data includes a categorical variable and one or more continuous variables, you will probably be interested to know how the values of the continuous variables vary with the levels of the categorical variable. Say we’re interested in seeing how fuel economy varies within car class. We might start with a scatterplot like this:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+ggplot(mpg, aes(drv, hwy)) + geom_point()
+
+```
+
+- Because there are few unique values of both class and hwy, there is a lot of
+overplotting. Many points are plotted in the same location, and it’s difficult
+to see the distribution. There are three useful techniques that help alleviate
+the problem:
+
+1. Jittering, geom jitter(), adds a little random noise to the data which can help avoid overplotting.
+
+2. Boxplots, geom boxplot(), summarise the shape of the distribution with a handful of summary statistics.
+
+3. Violin plots, geom violin(), show a compact representation of the “density” of the distribution, highlighting the areas where more points are found.
+
+- These are illustrated below;
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(drv, hwy)) + geom_jitter()
+g2<-ggplot(mpg, aes(drv, hwy)) + geom_boxplot()
+g3<-ggplot(mpg, aes(drv, hwy)) + geom_violin()
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+```
+
+- Each method has its strengths and weaknesses. Boxplots summarise the bulk of the distribution with only five numbers, while jittered plots show every point but only work with relatively small datasets. Violin plots give the richest display, but rely on the calculation of a density estimate, which can be hard to interpret.
+
+- For jittered points, geom jitter() offers the same control over aesthetics as geom point(): size, colour, and shape. For geom boxplot() and geom violin(), you can control the outline colour or the internal fill colour.
+
+## Histograms and Frequency Polygons 
+
+- Histograms and frequency polygons show the distribution of a single numeric variable. They provide more information about the distribution of a single group than boxplots do, at the expense of needing more space.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(hwy)) + geom_histogram()
+g2<-ggplot(mpg, aes(hwy)) + geom_freqpoly()
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- Both histograms and frequency polygons work in the same way: they bin the data, then count the number of observations in each bin. The only difference is the display: histograms use bars and frequency polygons use lines.
+
+- You can control the width of the bins with the binwidth argument (if you don’t want evenly spaced bins you can use the breaks argument). It is very important to experiment with the bin width. The default just splits your data into 30 bins, which is unlikely to be the best choice. You should always
+try many bin widths, and you may find you need multiple bin widths to tell the full story of your data.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(hwy)) + geom_freqpoly(binwidth = 2.5)
+g2<-ggplot(mpg, aes(hwy)) + geom_freqpoly(binwidth = 1)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- An alternative to the frequency polygon is the density plot, geom density(). I’m not a fan of density plots because they are harder to interpret since the underlying computations are more complex. They also make assumptions that are not true for all data, namely that the underlying distribution is
+continuous, unbounded, and smooth.
+
+- To compare the distributions of different subgroups, you can map a categorical variable to either fill (for geom histogram()) or colour (for geom freqpoly()). It’s easier to compare distributions using the frequency polygon because the underlying perceptual task is easier. You can also use
+facetting: this makes comparisons a little harder, but it’s easier to see the distribution of each group.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(displ, colour = drv)) + geom_freqpoly(binwidth = 0.5)
+g2<-ggplot(mpg, aes(displ, fill = drv)) + geom_histogram(binwidth = 0.5) + facet_wrap(~drv, ncol = 1)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+### Frequency Density
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(displ, colour = drv)) + geom_density()
+g2<-ggplot(mpg, aes(displ, colour = drv)) + geom_density() + facet_wrap(~drv, ncol = 1)
+grid.arrange(g1,g2,ncol=2)
+
+g1<-ggplot(mpg, aes(displ, fill = drv)) + geom_density()
+g2<-ggplot(mpg, aes(displ, fill = drv)) + geom_density() + facet_wrap(~drv, ncol = 1)
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+## Bar Charts
+
+- The discrete analogue of the histogram is the bar chart, geom bar(). It’s easy
+to use:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+ggplot(mpg, aes(manufacturer)) + geom_bar()
+
+```
+
+- Bar charts can be confusing because there are two rather different plots that are both commonly called bar charts. The above form expects you to have unsummarised data, and each observation contributes one unit to the height of each bar. The other form of bar chart is used for presummarised
+data. For example, you might have three drugs with their average effect:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+drugs <- data.frame(
+drug = c("a", "b", "c"),
+effect = c(4.2, 9.7, 6.1)
+)
+
+g1<-ggplot(drugs, aes(drug, effect)) + geom_bar(stat = "identity")
+g2<-ggplot(drugs, aes(drug, effect)) + geom_point()
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- To display this sort of data, you need to tell geom bar() to not run the default stat which bins and counts the data. However, I think it’s even better to use geom point() because points take up less space than bars, and don’t require that the y axis includes 0.
+
+## Time Series with Line and Path Plots
+
+- Line and path plots are typically used for time series data. Line plots join the points from left to right, while path plots join them in the order that they appear in the dataset (in other words, a line plot is a path plot of the data sorted by x value). Line plots usually have time on the x-axis, showing how a single variable has changed over time. Path plots show how two variables have simultaneously changed over time, with time encoded in the way that observations are connected.
+
+- Because the year variable in the mpg dataset only has two values, we’ll show some time series plots using the economics dataset, which contains economic data on the US measured over the last 40 years. The figure below shows two plots of unemployment over time, both produced using geom line(). The first
+shows the unemployment rate while the second shows the median number of weeks unemployed.We can already see some differences in these two variables, particularly in the last peak, where the unemployment percentage is lower than it was in the preceding peaks, but the length of unemployment is high.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(economics, aes(date, unemploy / pop)) + geom_line()
+g2<-ggplot(economics, aes(date, uempmed)) + geom_line()
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- To examine this relationship in greater detail, we would like to draw both time series on the same plot. We could draw a scatterplot of unemployment rate vs. length of unemployment, but then we could no longer see the evolution over time. The solution is to join points adjacent in time with line
+segments, forming a path plot.
+
+- Below we plot unemployment rate vs. length of unemployment and join the individual observations with a path. Because of the many line crossings, the direction in which time flows isn’t easy to see in the first plot. In the second plot, we colour the points to make it easier to see the direction of
+time.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(economics, aes(unemploy / pop, uempmed)) + geom_path() + geom_point()
+
+    year <- function(x) as.POSIXlt(x)$year + 1900
+
+g2<-ggplot(economics, aes(unemploy / pop, uempmed)) + geom_path(colour = "grey50") +
+geom_point(aes(colour = year(date)))
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- We can see that unemployment rate and length of unemployment are highly correlated, but in recent years the length of unemployment has been increasing relative to the unemployment rate.
+
+- With longitudinal data, you often want to display multiple time series on each plot, each series representing one individual. To do this you need to map the group aesthetic to a variable encoding the group membership of each observation. This is explained in more depth in Sect. 3.5.
+
+
+## Modifying the Axes
+
+- You’ll learn the full range of options available in Chap. 6, but two families
+of useful helpers let you make the most common modifications. xlab() and
+ylab() modify the x- and y-axis labels:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(cty, hwy)) + geom_point(alpha = 1 / 3)
+
+g2<-ggplot(mpg, aes(cty, hwy)) + geom_point(alpha = 1 / 3) + xlab("city driving (mpg)") +
+ylab("highway driving (mpg)")
+
+# Remove the axis labels with NULL
+g3<-ggplot(mpg, aes(cty, hwy)) + geom_point(alpha = 1 / 3) + xlab(NULL) + ylab(NULL)
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+```
+
+- xlim() and ylim() modify the limits of axes:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(drv, hwy)) + geom_jitter(width = 0.25)
+
+g2<-ggplot(mpg, aes(drv, hwy)) + geom_jitter(width = 0.25) + xlim("f", "r") + ylim(20, 30)
+
+# For continuous scales, use NA to set only one limit
+g3<-ggplot(mpg, aes(drv, hwy)) + geom_jitter(width = 0.25, na.rm = TRUE) + ylim(NA, 30)
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+```
+
+- Changing the axes limits sets values outside the range to NA. You can suppress the associated warning with na.rm = TRUE.
+
+## Output
+
+- Most of the time you create a plot object and immediately plot it, but you can also save a plot to a variable and manipulate it:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+p <- ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) + geom_point()
+
+print(p)
+
+summary(p)
+
+```
+
+- Once you have a plot object, there are a few things you can do with it:
+
+1. Render it on screen with print(). This happens automatically when running interactively, but inside a loop or function, you’ll need to print() it yourself.
+
+2. • Save it to disk with ggsave(), described in Sect. 8.5. Save png to disk
+ggsave("plot.png", width = 5, height = 5)
+
+3. Briefly describe its structure with summary().
+
+4. Save a cached copy of it to disk, with saveRDS(). This saves a complete copy of the plot object, so you can easily re-create it with readRDS(). saveRDS(p, "plot.rds")
+q <- readRDS("plot.rds")
+
+- The plot structure is not guaranteed to stay the same over time, so use this for short-term caching, not long-term storage. You’ll learn more about how to manipulate these objects in Chap. 12.
+
+
+## Quick Plots
+
+- In some cases, you will want to create a quick plot with a minimum of typing. In these cases you may prefer to use qplot() over ggplot(). qplot() lets you define a plot in a single call, picking a geom by default if you don’t supply one. To use it, provide a set of aesthetics and a data set:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-qplot(displ, hwy, data = mpg)
+g2<-qplot(displ, data = mpg)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- Unless otherwise specified, qplot() tries to pick a sensible geometry and statistic based on the arguments provided. For example, if you give qplot() x and y variables, it’ll create a scatterplot. If you just give it an x, it’ll create a histogram or bar chart depending on the type of variable.
+
+- qplot() assumes that all variables should be scaled by default. If you want
+to set an aesthetic to a constant, you need to use I():
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-qplot(displ, hwy, data = mpg, colour = "blue")
+g2<-qplot(displ, hwy, data = mpg, colour = I("blue"))
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+- If you’re used to plot() you may find qplot() to be a useful crutch to get up and running quickly. However, while it’s possible to use qplot() to access all of the customizability of ggplot2, I don’t recommend it. If you find yourself making a more complex graph, e.g. using different aesthetics in different layers or manually setting visual properties, use ggplot(), not qplot().
+
+
+## Toolbox
+
+### Introduction
+
+- The layered structure of ggplot2 encourages you to design and construct graphics in a structured manner. You’ve learned the basics in the previous chapter, and in this chapter you’ll get a more comprehensive task-based introduction. The goal here is not to exhaustively explore every option of every geom, but instead to show the most important tools for a given task. For more information about individual geoms, along with many more examples illustrating their use, see the documentation.
+It is useful to think about the purpose of each layer before it is added. In general, there are three purposes for a layer:
+
+1. To display the data. We plot the raw data for many reasons, relying on our skills at pattern detection to spot gross structure, local structure, and outliers. This layer appears on virtually every graphic. In the earliest stages of data exploration, it is often the only layer.
+
+2. To display a statistical summary of the data. As we develop and explore models of the data, it is useful to display model predictions in the context of the data. Showing the data helps us improve the model, and showing the model helps reveal subtleties of the data that we might otherwise miss.
+Summaries are usually drawn on top of the data.
+
+3. To add additional metadata: context, annotations, and references. A metadata layer displays background context, annotations that help to give meaning to the raw data, or fixed references that aid comparisons across panels. Metadata can be useful in the background and foreground.
+A map is often used as a background layer with spatial data. Background metadata should be rendered so that it doesn’t interfere with your perception of the data, so is usually displayed underneath the data and formatted so that it is minimally perceptible. That is, if you concentrate on it, you
+can see it with ease, but it doesn’t jump out at you when you are casually browsing the plot.
+
+## Basic Plot Types
+
+- These geoms are the fundamental building blocks of ggplot2. They are useful in their own right, but are also used to construct more complex geoms. Most of these geoms are associated with a named plot: when that geom is used by itself in a plot, that plot has a special name.
+
+- Each of these geoms is two dimensional and requires both x and y aesthetics. All of them understand colour (or color) and size aesthetics, and the filled geoms (bar, tile and polygon) also understand fill.
+
+1. geom area() draws an area plot, which is a line plot filled to the y-axis (filled lines). Multiple groups will be stacked on top of each other.
+
+2. geom bar(stat = "identity") makes a bar chart.We need stat = "identity" because the default stat automatically counts values (so is essentially a 1d geom, see Sect. 3.11. The identity stat leaves the data unchanged. Multiple bars in the same location will be stacked on top of one another.
+
+3. geom line() makes a line plot. The group aesthetic determines which observations are connected; see Sect. 3.5 for more detail. geom line() connects points from left to right; geom path() is similar but connects points in the order they appear in the data. Both geom line() and geom path() also understand
+the aesthetic linetype, which maps a categorical variable to solid, dotted and dashed lines.
+
+4. geom point() produces a scatterplot. geom point() also understands the shape aesthetic.
+
+5. geom polygon() draws polygons, which are filled paths. Each vertex of the polygon requires a separate row in the data. It is often useful to merge a data frame of polygon coordinates with the data just prior to plotting. Section 3.7 illustrates this concept in more detail for map data.
+
+• geom rect(), geom tile() and geom raster() draw rectangles. geom rect() is parameterised by the four corners of the rectangle, xmin, ymin, xmax and ymax. geom tile() is exactly the same, but parameterised by the center of the rect and its size, x, y, width and height. geom raster() is a fast special case of geom tile() used when all the tiles are the same size. 
+
+- Each geom is shown in the code below. Observe the different axis ranges for the bar, area and tile plots: these geoms take up space outside the range of the data, and so push the axes out.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+df <- data.frame(
+x = c(3, 1, 5),
+y = c(2, 4, 6),
+label = c("a","b","c")
+)
+
+p <- ggplot(df, aes(x, y, label = label)) +
+labs(x = NULL, y = NULL) + # Hide axis label
+theme(plot.title = element_text(size = 12)) # Shrink plot title
+g1<-p + geom_point() + ggtitle("point")
+g2<-p + geom_text() + ggtitle("text")
+g3<-p + geom_bar(stat = "identity") + ggtitle("bar")
+g4<-p + geom_tile() + ggtitle("raster")
+
+grid.arrange(g1,g2,g3,g4,ncol=4)
+
+#some more plots
+g5<-p + geom_line() + ggtitle("line")
+g6<-p + geom_area() + ggtitle("area")
+g7<-p + geom_path() + ggtitle("path")
+g8<-p + geom_polygon() + ggtitle("polygon")
+
+grid.arrange(g5,g6,g7,g8,ncol=4)
+
+```
+
+## Labels
+
+- Adding text to a plot can be quite tricky. ggplot2 doesn’t have all the answers, but does provide some tools to make your life a little easier. The main tool is geom text(), which adds labels at the specified x and y positions. geom text() has the most aesthetics of any geom, because there are so many ways to control the appearance of a text:
+
+- family gives the name of a font. There are only three fonts that are guaranteed to work everywhere: “sans” (the default), “serif”, or “mono”:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+df <- data.frame(x = 1, y = 3:1, family = c("sans", "serif", "mono"))
+ggplot(df, aes(x, y)) + geom_text(aes(label = family, family = family))
+
+```
+
+
+- It’s trickier to include a system font on a plot because text drawing is done differently by each graphics device (GD). There are five GDs in common use (png(), pdf(), on screen devices for Windows, Mac and Linux), so to have a font work everywhere you need to configure five devices in five
+different ways. Two packages simplify the quandary a bit:
+
+1. showtext, https://github.com/yixuan/showtext, by Yixuan Qiu, makes GD-independent plots by rendering all text as polygons.
+
+2. extrafont, https://github.com/wch/extrafont, by Winston Chang, converts fonts to a standard format that all devices can use.
+
+- Both approaches have pros and cons, so you will to need to try both of them and see which works best for your needs.
+
+1. fontface specifies the face: “plain” (the default), “bold” or “italic”.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+df <- data.frame(x = 1, y = 3:1, face = c("plain", "bold", "italic"))
+ggplot(df, aes(x, y)) + geom_text(aes(label = face, fontface = face))
+
+```
+
+2. You can adjust the alignment of the text with the hjust (“left”, “center”,
+“right”, “inward”, “outward”) and vjust (“bottom”, “middle”, “top”, “inward”,
+“outward”) aesthetics. The default alignment is centered. One of
+the most useful alignments is “inward”: it aligns text towards the middle
+of the plot:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+df <- data.frame(
+x = c(1, 1, 2, 2, 1.5),
+y = c(1, 2, 1, 2, 1.5),
+text = c(
+"bottom-left", "bottom-right",
+"top-left", "top-right", "center"
+)
+)
+
+g1<-ggplot(df, aes(x, y)) + geom_text(aes(label = text))
+g2<-ggplot(df, aes(x, y)) + geom_text(aes(label = text), vjust = "inward", hjust = "inward")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+3. size controls the font size. Unlike most tools, ggplot2 uses mm, rather than the usual points (pts). This makes it consistent with other size units in ggplot2. (There are 72.27 pts in a inch, so to convert from points to mm, just multiply by 72.27/25.4.)
+
+4. angle specifies the rotation of the text in degrees.
+
+- You can map data values to these aesthetics, but use restraint: it is hard
+to perceive the relationship between variables mapped to these aesthetics.
+geom text() also has three parameters. Unlike the aesthetics, these only take
+single values, so they must be the same for all labels:
+
+5. Often you want to label existing points on the plot. You don’t want the text to overlap with the points (or bars etc), so it’s useful to offset the text a little. The nudge x and nudge y parameters allow you to nudge the text a little horizontally or vertically:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+df <- data.frame(trt = c("a", "b", "c"), resp = c(1.2, 3.4, 2.5))
+ggplot(df, aes(resp, trt)) +
+geom_point() +
+geom_text(aes(label = paste0("(", resp, ")")), nudge_y = -0.25) +
+xlim(1, 3.6)
+
+```
+
+6. If check overlap = TRUE, overlapping labels will be automatically removed. The algorithm is simple: labels are plotted in the order they appear in the data frame; if a label would overlap with an existing point, it’s omitted. This is not incredibly useful, but can be handy.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+g1<-ggplot(mpg, aes(displ, hwy)) + geom_text(aes(label = model)) + xlim(1, 8)
+
+g2<-ggplot(mpg, aes(displ, hwy)) + geom_text(aes(label = model), check_overlap = TRUE) + xlim(1, 8)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- A variation on geom text() is geom label(): it draws a rounded rectangle behind the text. This makes it useful for adding labels to plots with busy backgrounds:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+label <- data.frame(
+waiting = c(55, 80),
+eruptions = c(2, 4.3),
+label = c("peak one", "peak two")
+)
+
+ggplot(faithfuld, aes(waiting, eruptions)) +
+geom_tile(aes(fill = density)) +
+geom_label(data = label, aes(label = label))
+
+```
+
+- Text does not affect the limits of the plot. Unfortunately there’s no way to make this work since a label has an absolute size (e.g. 3 cm), regardless of the size of the plot. This means that the limits of a plot would need to be different depending on the size of the plot—there’s just no way to make
+that happen with ggplot2. Instead, you’ll need to tweak xlim() and ylim() based on your data and plot size.
+
+- If you want to label many points, it is difficult to avoid overlaps. check overlap = TRUE is useful, but offers little control over which labels are removed. There are a number of techniques available for base graphics, like maptools::pointLabel(), but they’re not trivial to port to the grid
+graphics used by ggplot2. If all else fails, you may need to manually label points in a drawing tool.
+
+- Text labels can also serve as an alternative to a legend. This usually makes the plot easier to read because it puts the labels closer to the data. The directlabels (https://github.com/tdhock/directlabels) package, by Toby Dylan Hocking, provides a number of tools to make this easier:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(directlabels)
+
+g1<-ggplot(mpg, aes(displ, hwy, colour = class)) +
+geom_point()
+
+g2<-ggplot(mpg, aes(displ, hwy, colour = class)) + geom_point(show.legend = FALSE) +
+directlabels::geom_dl(aes(label = class), method = "smart.grid")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+- Directlabels provides a number of position methods. smart.grid is a reasonable place to start for scatterplots, but there are other methods that are more useful for frequency polygons and line plots. See the directlabels website, http://directlabels.r-forge.r-project.org, for other techniques.
+
+## Annotations
+
+- Annotations add metadata to your plot. But metadata is just data, so you can use:
+
+1. geom text() to add text descriptions or to label points Most plots will not benefit from adding text to every single observation on the plot, but labelling outliers and other important points is very useful.
+
+2. geom rect() to highlight interesting rectangular regions of the plot. geom rect() has aesthetics xmin, xmax, ymin and ymax.
+
+3. geom line(), geom path() and geom segment() to add lines. All these geoms have an arrow parameter, which allows you to place an arrowhead on the line. Create arrowheads with arrow(), which has arguments angle, length, ends and type.
+
+4. geom vline(), geom hline() and geom abline() allow you to add reference lines (sometimes called rules), that span the full range of the plot.
+
+- Typically, you can either put annotations in the foreground (using alpha if needed so you can still see the data), or in the background. With the default background, a thick white line makes a useful reference: it’s easy to see but it doesn’t jump out at you.
+
+- To show off the basic idea, we’ll draw a time series of unemployment:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+ggplot(economics, aes(date, unemploy)) + geom_line()
+
+```
+
+- We can annotate this plot with which president was in power at the time. There is little new in this code - it’s a straightforwardmanipulation of existing geoms. There is one special thing to note: the use of -Inf and Inf as positions. These refer to the top and bottom (or left and right) limits of the plot.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+presidential <- subset(presidential, start > economics$date[1])
+ggplot(economics) +
+geom_rect(
+aes(xmin = start, xmax = end, fill = party),
+ymin = -Inf, ymax = Inf, alpha = 0.2,
+data = presidential
+) +
+geom_vline(
+aes(xintercept = as.numeric(start)),
+data = presidential,
+colour = "grey50", alpha = 0.5
+) +
+geom_text(
+aes(x = start, y = 2500, label = name),
+data = presidential,
+size = 3, vjust = 0, hjust = 0, nudge_x = 50
+) +
+geom_line(aes(date, unemploy)) +
+scale_fill_manual(values = c("blue", "red"))
+
+```
+
+- You can use the same technique to add a single annotation to a plot, but it’s a bit fiddly because you have to create a one row data frame:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+yrng <- range(economics$unemploy)
+xrng <- range(economics$date)
+caption <- paste(strwrap("Unemployment rates in the US have
+varied a lot over the years", 40), collapse = "\n")
+ggplot(economics, aes(date, unemploy)) +
+geom_line() +
+geom_text(
+aes(x, y, label = caption),
+data = data.frame(x = xrng[1], y = yrng[2], caption = caption),
+hjust = 0, vjust = 1, size = 4
+)
+
+```
+
+- It’s easier to use the annotate() helper function which creates the data frame for you:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+ggplot(economics, aes(date, unemploy)) +
+geom_line() +
+annotate("text", x = xrng[1], y = yrng[2], label = caption,
+hjust = 0, vjust = 1, size = 4
+)
+
+```
+
+
+- Annotations, particularly reference lines, are also useful when comparing groups across facets. In the following plot, it’s much easier to see the subtle differences if we add a reference line.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+
+ggplot(diamonds, aes(log10(carat), log10(price))) +
+geom_bin2d() +
+facet_wrap(~cut, nrow = 1)
+
+mod_coef <- coef(lm(log10(price) ~ log10(carat), data = diamonds))
+ggplot(diamonds, aes(log10(carat), log10(price))) +
+geom_bin2d() +
+geom_abline(intercept = mod_coef[1], slope = mod_coef[2],
+colour = "white", size = 1) +
+facet_wrap(~cut, nrow = 1)
+
+```
+
+## Collective Geoms
+
+- Geoms can be roughly divided into individual and collective geoms. An individual geom draws a distinct graphical object for each observation (row). For example, the point geom draws one point per row. A collective geom displays multiple observations with one geometric object. This may be a result
+of a statistical summary, like a boxplot, or may be fundamental to the display of the geom, like a polygon. Lines and paths fall somewhere in between: each line is composed of a set of straight segments, but each segment represents two points. How do we control the assignment of observations to
+graphical elements? This is the job of the group aesthetic.
+
+- By default, the group aesthetic is mapped to the interaction of all discrete variables in the plot. This often partitions the data correctly, but when it does not, or when no discrete variable is used in a plot, you’ll need to explicitly define the grouping structure by mapping group to a variable that has a different value for each group.
+
+- There are three common cases where the default is not enough, and we will consider each one below. In the following examples, we will use a simple longitudinal dataset, Oxboys, from the nlme package. It records the heights (height) and centered ages (age) of 26 boys (Subject), measured on nine occasions (Occasion). Subject and Occasion are stored as ordered factors.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+data(Oxboys)
+head(Oxboys)
+
+
+```
+
+## Multiple Groups, One Aesthetic
+
+- In many situations, you want to separate your data into groups, but render them in the same way. In other words, you want to be able to distinguish individual subjects, but not identify them. This is common in longitudinal studies with many subjects, where the plots are often descriptively called
+spaghetti plots. For example, the following plot shows the growth trajectory for each boy (each Subject):
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(age, height, group = Subject)) +
+geom_point() +
+geom_line()
+
+```
+
+- If you incorrectly specify the grouping variable, you’ll get a characteristic sawtooth appearance:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(age, height)) +
+geom_point() +
+geom_line()
+
+```
+
+- If a group isn’t defined by a single variable, but instead by a combination of multiple variables, use interaction() to combine them, e.g. aes(group = interaction(school id, student id)).
+
+## Different Groups on Different Layers
+
+- Sometimes we want to plot summaries that use different levels of aggregation: one layer might display individuals, while another displays an overall summary. Building on the previous example, suppose we want to add a single smooth line, showing the overall trend for all boys. If we use the same grouping in both layers, we get one smooth per boy:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(age, height, group = Subject)) +
+geom_line() +
+geom_smooth(method = "lm", se = FALSE)
+
+```
+
+- This is not what we wanted; we have inadvertently added a smoothed line for each boy. Grouping controls both the display of the geoms, and the operation of the stats: one statistical transformation is run for each group.
+
+- Instead of setting the grouping aesthetic in ggplot(), where it will apply to all layers, we set it in geom line() so it applies only to the lines. There are no discrete variables in the plot so the default grouping variable will be a constant and we get one smooth:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(age, height)) +
+geom_line(aes(group = Subject)) +
+geom_smooth(method = "lm", size = 2, se = FALSE)
+
+```
+
+## Overriding the Default Grouping
+
+- Some plots have a discrete x scale, but you still want to draw lines connecting across groups. This is the strategy used in interaction plots, profile plots, and parallel coordinate plots, among others. For example, imagine we’ve drawn boxplots of height at each measurement occasion:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(Occasion, height)) +
+geom_boxplot()
+
+```
+
+
+- There is one discrete variable in this plot, Occasion, so we get one boxplot for each unique x value. Now we want to overlay lines that connect each individual boy. Simply adding geom line() does not work: the lines are drawn within each occasion, not across each subject:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(Occasion, height)) +
+geom_boxplot() +
+geom_line(colour = "#3366FF", alpha = 0.5)
+
+```
+
+- To get the plot we want, we need to override the grouping to say we want one line per boy:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+ggplot(Oxboys, aes(Occasion, height)) +
+geom_boxplot() +
+geom_line(aes(group = Subject), colour = "#3366FF", alpha = 0.5)
+
+```
+
+## Matching Aesthetics to Graphic Objects
+
+- A final important issue with collective geoms is how the aesthetics of the individual observations are mapped to the aesthetics of the complete entity. What happens when different aesthetics are mapped to a single geometric element?
+
+- Lines and paths operate on an off-by-one principle: there is one more observation than line segment, and so the aesthetic for the first observation is used for the first segment, the second observation for the second segment and so on. This means that the aesthetic for the last observation is not used:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+df <- data.frame(x = 1:3, y = 1:3, colour = c(1,3,5))
+ggplot(df, aes(x, y, colour = factor(colour))) +
+geom_line(aes(group = 1), size = 2) +
+geom_point(size = 5)
+
+ggplot(df, aes(x, y, colour = colour)) +
+geom_line(aes(group = 1), size = 2) +
+geom_point(size = 5)
+
+```
+
+- You could imagine a more complicated system where segments smoothly blend from one aesthetic to another. This would work for continuous variables like size or colour, but not for discrete variables, and is not used in ggplot2. If this is the behaviour you want, you can perform the linear interpolation yourself:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+xgrid <- with(df, seq(min(x), max(x), length = 50))
+interp <- data.frame(
+x = xgrid,
+y = approx(df$x, df$y, xout = xgrid)$y,
+colour = approx(df$x, df$colour, xout = xgrid)$y
+)
+ggplot(interp, aes(x, y, colour = colour)) +
+geom_line(size = 2) +
+geom_point(data = df, size = 5)
+
+```
+
+- An additional limitation for paths and lines is that line type must be constant over each individual line. In R there is no way to draw a line which has varying line type.
+
+- For all other collective geoms, like polygons, the aesthetics from the individual components are only used if they are all the same, otherwise the default value is used. It’s particularly clear why this makes sense for fill: how would you colour a polygon that had a different fill colour for each point on its border?
+
+- These issues are most relevant when mapping aesthetics to continuous variables, because, as described above, when you introduce a mapping to a discrete variable, it will by default split apart collective geoms into smaller pieces. This works particularly well for bar and area plots, because stacking the individual pieces produces the same shape as the original ungrouped data:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+g1<-ggplot(mpg, aes(class)) +
+geom_bar()
+
+g2<-ggplot(mpg, aes(class, fill = drv)) +
+geom_bar()
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+- If you try to map fill to a continuous variable in the same way, it doesn’t work. The default grouping will only be based on class, so each bar will be given multiple colours. Since a bar can only display one colour, it will use the default grey. To show multiple colours, we need multiple bars for each class, which we can get by overriding the grouping:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+g1<-ggplot(mpg, aes(class, fill = hwy)) +
+geom_bar()
+
+g2<-ggplot(mpg, aes(class, fill = hwy, group = hwy)) +
+geom_bar()
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- The bars will be stacked in the order defined by the grouping variable. If you need fine control, you’ll need to create a factor with levels ordered as needed.
+
+- Modify the following plot so that you get one boxplot per integer value of displ.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+g1<-ggplot(mpg, aes(displ, cty)) + geom_boxplot()
+
+g2<-ggplot(mpg, aes(factor(displ), cty)) + geom_boxplot()
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+## Surface Plots
+
+- ggplot2 does not support true 3d surfaces. However, it does support many common tools for representing 3d surfaces in 2d: contours, coloured tiles and bubble plots. These all work similarly, differing only in the aesthetic used for the third dimension.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+g1<-ggplot(faithfuld, aes(eruptions, waiting)) + geom_contour(aes(z = density, colour = ..level..))
+ggplotly(g1)
+
+g2<-ggplot(faithfuld, aes(eruptions, waiting)) + geom_raster(aes(fill = density))
+ggplotly(g2)
+
+grid.arrange(g1,g2,ncol=2)
+
+# Bubble plots work better with fewer observations
+small <- faithfuld[seq(1, nrow(faithfuld), by = 10), ]
+ggplot(small, aes(eruptions, waiting)) +
+geom_point(aes(size = density), alpha = 1/3) +
+scale_size_area()
+
+```
+
+- For interactive 3d plots, including true 3d surfaces, see RGL, http://rgl.
+neoscientists.org/about.shtml.
+
+
+## Drawing Maps
+
+- There are four types of map data you might want to visualise: vector boundaries, point metadata, area metadata, and raster images. Typically, assembling these datasets is the most challenging part of drawing maps. Unfortunately ggplot2 can’t help you with that part of the analysis, but I’ll
+provide some hints about other R packages that you might want to look at. I’ll illustrate each of the four types of map data with some maps of Michigan.
+
+### Vector Boundaries
+
+- Vector boundaries are defined by a data frame with one row for each “corner” of a geographical region like a country, state, or county. It requires four variables:
+
+1. lat and long, giving the location of a point.
+
+2. group, a unique identifier for each contiguous region.
+
+3. id, the name of the region.
+
+- Separate group and id variables are necessary because sometimes a geographical unit isn’t a contiguous polygon. For example, Hawaii is composed of multiple islands that can’t be drawn using a single polygon.
+
+- The following code extracts that data from the built in maps package using ggplot2::map data(). The maps package isn’t particularly accurate or up-to-date, but it’s built into R so it’s a reasonable place to start.
+
+NB: Could not complete this part because some of the packages are not available for version 3.6.1.
+
+## Revealing Uncertainty
+
+- If you have information about the uncertainty present in your data, whether it be from a model or from distributional assumptions, it’s a good idea to display it. There are four basic families of geoms that can be used for this job, depending on whether the x values are discrete or continuous, and whether or not you want to display the middle of the interval, or just the extent:
+
+1. Discrete x, range: geom errorbar(), geom linerange().
+
+2. Discrete x, range & center: geom crossbar(), geom pointrange().
+
+3. Continuous x, range: geom ribbon().
+
+4. Continuous x, range & center: geom smooth(stat = "identity")
+
+- These geoms assume that you are interested in the distribution of y conditional on x and use the aesthetics ymin and ymax to determine the range of the y values. If you want the opposite, see Sect. 7.4.2.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+y <- c(18, 11, 16)
+df <- data.frame(x = 1:3, y = y, se = c(1.2, 0.5, 1.0))
+base <- ggplot(df, aes(x, y, ymin = y - se, ymax = y + se))
+g1<-base + geom_crossbar()
+g2<-base + geom_pointrange()
+g3<-base + geom_smooth(stat = "identity")
+g4<-base + geom_errorbar()
+g5<-base + geom_linerange()
+g6<-base + geom_ribbon()
+
+grid.arrange(g1,g2,g3,g4,g5,g6,ncol=3,nrow=2)
+
+```
+
+- Because there are so many different ways to calculate standard errors, the calculation is up to you. For very simple cases, ggplot2 provides some tools in the form of summary functions described below, otherwise you will have to do it yourself. Chapter 11 contains more advice on extracting confidence intervals from more sophisticated models.
+
+## Weighted Data
+
+- When you have aggregated data where each row in the dataset represents multiple observations, you need some way to take into account the weighting variable. We will use some data collected on Midwest states in the 2000 US census in the built-in midwest data frame. The data consists mainly of
+percentages (e.g., percent white, percent below poverty line, percent with college degree) and some information for each county (area, total population, population density).
+
+- There are a few different things we might want to weight by:
+
+1. Nothing, to look at numbers of counties.
+
+2. Total population, to work with absolute numbers.
+
+3. Area, to investigate geographic effects. (This isn’t useful for midwest, but would be if we had variables like percentage of farmland.)
+
+- The choice of a weighting variable profoundly affects what we are looking at in the plot and the conclusions that we will draw. There are two aesthetic attributes that can be used to adjust for weights. Firstly, for simple geoms like lines and points, use the size aesthetic:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+# Unweighted
+g1<-ggplot(midwest, aes(percwhite, percbelowpoverty)) +
+geom_point()
+
+# Weight by population
+g2<-ggplot(midwest, aes(percwhite, percbelowpoverty)) +
+geom_point(aes(size = poptotal / 1e6)) +
+scale_size_area("Population\n(millions)", breaks = c(0.5, 1, 2, 4))
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- For more complicated grobs which involve some statistical transformation, we specify weights with the weight aesthetic. These weights will be passed on to the statistical summary function. Weights are supported for every case where it makes sense: smoothers, quantile regressions, boxplots, histograms, and density plots. You can’t see this weighting variable directly, and it doesn’t
+produce a legend, but it will change the results of the statistical summary. The following code shows how weighting by population density affects the relationship between percent white and percent below the poverty line.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+# Unweighted
+g1<-ggplot(midwest, aes(percwhite, percbelowpoverty)) +
+geom_point() +
+geom_smooth(method = lm, size = 1)
+
+# Weighted by population
+g2<-ggplot(midwest, aes(percwhite, percbelowpoverty)) +
+geom_point(aes(size = poptotal / 1e6)) +
+geom_smooth(aes(weight = poptotal), method = lm, size = 1) +
+scale_size_area(guide = "none")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- When we weight a histogram or density plot by total population, we change from looking at the distribution of the number of counties, to the distribution of the number of people. The following code shows the difference this makes for a histogram of the percentage below the poverty line:
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+
+g1<-ggplot(midwest, aes(percbelowpoverty)) +
+geom_histogram(binwidth = 1) +
+ylab("Counties")
+
+g2<-ggplot(midwest, aes(percbelowpoverty)) +
+geom_histogram(aes(weight = poptotal), binwidth = 1) +
+ylab("Population (1000s)")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+## Diamonds Data
+
+- To demonstrate tools for large datasets, we’ll use the built in diamonds dataset, which consists of price and quality information for ˜54,000 diamonds:
+
+- The data contains the four C’s of diamond quality: carat, cut, colour and clarity; and five physical measurements: depth, table, x, y and z.
+
+- The dataset has not been well cleaned, so as well as demonstrating interesting facts about diamonds, it also shows some data quality problems.
+
+### Displaying Distributions
+
+- There are a number of geoms that can be used to display distributions, depending on the dimensionality of the distribution, whether it is continuous or discrete, and whether you are interested in the conditional or joint distribution.
+
+- For 1d continuous distributions the most important geom is the histogram, geom histogram():
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(depth)) + geom_histogram()
+
+g2<-ggplot(diamonds, aes(depth)) + geom_histogram(binwidth = 0.1) + xlim(55, 70)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- It is important to experiment with binning to find a revealing view. You can change the binwidth, specify the number of bins, or specify the exact location of the breaks. Never rely on the default parameters to get a revealing view of the distribution. Zooming in on the x axis, xlim(55, 70), and selecting a smaller bin width, binwidth = 0.1, reveals far more detail.
+
+- When publishing figures, don’t forget to include information about important parameters (like bin width) in the caption.
+
+- If you want to compare the distribution between groups, you have a few options:
+
+1. Show small multiples of the histogram, facet wrap(~ var).
+
+2. Use colour and a frequency polygon, geom freqpoly().
+
+3. Use a “conditional density plot”, geom histogram(position = "fill").
+
+- The frequency polygon and conditional density plots are shown below. The conditional density plot uses position fill() to stack each bin, scaling it to the same height. This plot is perceptually challenging because you need to compare bar heights, not positions, but you can see the strongest patterns.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(depth)) +
+geom_freqpoly(aes(colour = cut), binwidth = 0.1, na.rm = TRUE) +
+xlim(58, 68) +
+theme(legend.position = "none")
+
+g2<-ggplot(diamonds, aes(depth)) +
+geom_histogram(aes(fill = cut), binwidth = 0.1, position = "fill",
+na.rm = TRUE) +
+xlim(58, 68) +
+theme(legend.position = "none")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- (I’ve suppressed the legends to focus on the display of the data.)
+
+- Both the histogram and frequency polygon geom use the same underlying statistical transformation: stat = "bin". This statistic produces two output variables: count and density. By default, count is mapped to y-position, because it’s most interpretable. The density is the count divided by the total
+count multiplied by the bin width, and is useful when you want to compare the shape of the distributions, not the overall size.
+
+- An alternative to a bin-based visualisation is a density estimate. geom density() places a little normal distribution at each data point and sums up all the curves. It has desirable theoretical properties, but is more difficult to relate back to the data. Use a density plot when you know that
+the underlying density is smooth, continuous and unbounded. You can use the adjust parameter to make the density more or less smooth.
+
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(depth)) +
+geom_density(na.rm = TRUE) +
+xlim(58, 68) +
+theme(legend.position = "none")
+
+g2<-ggplot(diamonds, aes(depth, fill = cut, colour = cut)) +
+geom_density(alpha = 0.2, na.rm = TRUE) +
+xlim(58, 68) +
+theme(legend.position = "none")
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- Note that the area of each density estimate is standardised to one so that you lose information about the relative size of each group.
+
+- The histogram, frequency polygon and density display a detailed view of the distribution. However, sometimes you want to compare many distributions, and it’s useful to have alternative options that sacrifice quality for quantity. Here are three options:
+
+1. geom boxplot(): the box-and-whisker plot shows five summary statistics along with individual “outliers”. It displays far less information than a histogram, but also takes up much less space.
+You can use boxplot with both categorical and continuous x. For continuous x, you’ll also need to set the group aesthetic to define how the x variable is broken up into bins. A useful helper function is cut width():
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(clarity, depth)) +
+geom_boxplot()
+
+g2<-ggplot(diamonds, aes(carat, depth)) +
+geom_boxplot(aes(group = cut_width(carat, 0.1))) +
+xlim(NA, 2.05)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+2. geom violin(): the violin plot is a compact version of the density plot. The underlying computation is the same, but the results are displayed in a similar fashion to the boxplot:
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(clarity, depth)) +
+geom_violin()
+
+g2<-ggplot(diamonds, aes(carat, depth)) +
+geom_violin(aes(group = cut_width(carat, 0.1))) +
+xlim(NA, 2.05)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+3. geom dotplot(): draws one point for each observation, carefully adjusted in space to avoid overlaps and show the distribution. It is useful for smaller datasets.
+
+## Dealing with Overplotting
+
+- The scatterplot is a very important tool for assessing the relationship between two continuous variables. However, when the data is large, points will be often plotted on top of each other, obscuring the true relationship. In extreme cases, you will only be able to see the extent of the data, and any conclusions drawn from the graphic will be suspect. This problem is called overplotting.
+
+- There are a number of ways to deal with it depending on the size of the data and severity of the overplotting. The first set of techniques involves tweaking aesthetic properties. These tend to be most effective for smaller datasets:
+
+1. Very small amounts of overplotting can sometimes be alleviated by making the points smaller, or using hollow glyphs. The following code shows some options for 2000 points sampled from a bivariate normal distribution.
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+df <- data.frame(x = rnorm(2000), y = rnorm(2000))
+norm <- ggplot(df, aes(x, y)) + xlab(NULL) + ylab(NULL)
+g1<-norm + geom_point()
+g2<-norm + geom_point(shape = 1) # Hollow circles
+g3<-norm + geom_point(shape = ".") # Pixel sized
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+```
+
+2. For larger datasets with more overplotting, you can use alpha blending (transparency) to make the points transparent. If you specify alpha as a ratio, the denominator gives the number of points that must be overplotted to give a solid colour. Values smaller than ˜1/500 are rounded down to zero, giving completely transparent points.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-norm + geom_point(alpha = 1 / 3)
+g2<-norm + geom_point(alpha = 1 / 5)
+g3<-norm + geom_point(alpha = 1 / 10)
+
+grid.arrange(g1,g2,g3,ncol=3)
+
+```
+
+3. If there is some discreteness in the data, you can randomly jitter the points to alleviate some overlaps with geom jitter(). This can be particularly useful in conjunction with transparency. By default, the amount of jitter added is 40% of the resolution of the data, which leaves a small
+gap between adjacent regions. You can override the default with width and height arguments.
+
+- Alternatively, we can think of overplotting as a 2d density estimation problem, which gives rise to two more approaches:
+
+4. Bin the points and count the number in each bin, then visualise that count
+(the 2d generalisation of the histogram), geom bin2d(). Breaking the plot into many small squares can produce distracting visual artefacts. (D. B.Carr et al., 1987) suggests using hexagons instead, and this is implemented in geom hex(), using the hexbin package (D. Carr et al., 2015).The code below compares square and hexagonal bins, using parameters bins and binwidth to control the number and size of the bins.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-norm + geom_bin2d()
+g2<-norm + geom_bin2d(bins = 10)
+g3<-norm + geom_hex()
+g4<-norm + geom_hex(bins = 10)
+
+grid.arrange(g1,g2,g3,g4,ncol=2,nrow=2)
+
+```
+
+5. Estimate the 2d density with stat density2d(), and then display using one of the techniques for showing 3d surfaces in Sect. 3.6.
+
+6. If you are interested in the conditional distribution of y given x, then the techniques of Sect. 2.6.3 will also be useful.
+
+- Another approach to dealing with overplotting is to add data summaries to help guide the eye to the true shape of the pattern within the data. For example, you could add a smooth line showing the centre of the data with geom smooth() or use one of the summaries below.
+
+## Statistical Summaries
+
+- geom histogram() and geom bin2d() use a familiar geom, geom bar() and geom raster(), combined with a new statistical transformation, stat bin() and stat bin2d(). stat bin() and stat bin2d() combine the data into bins and count the number of observations in each bin. But what if we want a summary other than count? So far, we’ve just used the default statistical transformation associated with each geom. Now we’re going to explore how to use stat summary bin() to stat summary 2d() to compute different summaries.
+
+- Let’s start with a couple of examples with the diamonds data. The first example in each pair shows how we can count the number of diamonds in each bin; the second shows how we can compute the average price.
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(color)) + geom_bar()
+
+g2<-ggplot(diamonds, aes(color, price)) + geom_bar(stat = "summary_bin", fun.y = mean)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+
+```{r,echo=TRUE,message=FALSE,warning=FALSE,comment=""}
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(gridExtra)
+library(mgcv)
+library(MASS)
+library(nlme)
+data(diamonds)
+
+g1<-ggplot(diamonds, aes(table, depth)) +
+geom_bin2d(binwidth = 1, na.rm = TRUE) +
+xlim(50, 70) +
+ylim(50, 70)
+
+g2<-ggplot(diamonds, aes(table, depth, z = price)) +
+geom_raster(binwidth = 1, stat = "summary_2d", fun = mean,
+na.rm = TRUE) +
+xlim(50, 70) +
+ylim(50, 70)
+
+grid.arrange(g1,g2,ncol=2)
+
+```
+
+- To get more help on the arguments associated with the two transformations, look at the help for stat summary bin() and stat summary 2d(). You can control the size of the bins and the summary functions. stat summary bin() can produce y, ymin and ymax aesthetics, also making it useful for displaying measures of spread. See the docs for more details. You’ll learn more about how geoms and stats interact in Sect. 5.6.
+
+- These summary functions are quite constrained but are often useful for a quick first pass at a problem. If you find them restraining, you’ll need to do the summaries yourself. See Sect. 10.4 for more details.
+
+## Add-on Packages
+
+- If the built-in tools in ggplot2 don’t do what you need, you might want to use a special purpose tool built into one of the packages built on top of ggplot2. Some of the packages that I was familiar with when the book was published include:
+
+1. animInt, https://github.com/tdhock/animint, lets you make you ggplot2 graphics interactive, adding querying, filtering and linking.
+
+2. GGally, https://github.com/ggobi/ggally, provides a very flexible scatterplot matrix, amongst other tools.
+
+3. ggbio, http://www.tengfei.name/ggbio/, provides a number of specialised geoms for genomic data.
+
+4. ggdendro, https://github.com/andrie/ggdendro, turns data from tree methods in to data frames that can easily be displayed with ggplot2.
+
+5. ggfortify, https://github.com/sinhrks/ggfortify, provides fortify and autoplot methods to handle objects from some popular R packages.
+
+6. ggenealogy, https://cran.r-project.org/package=ggenealogy, helps explore and visualise genealogy data.
+
+7. ggmcmc, http://xavier-fim.net/packages/ggmcmc/, provides a set of flexible tools for visualising the samples generated by MCMC methods.
+
+8. ggparallel, https://cran.r-project.org/package=ggparallel: easily draw parallel coordinates plots, and the closely related hammock and common angle plots.
+
+9. ggtern, http://www.ggtern.com, lets you use ggplot2 to draw ternary diagrams, used when you have three variables that always sum to one.
+
+10. ggtree, https://github.com/GuangchuangYu/ggtree, provides tools to view and annotate phylogenetic tree with different types of meta-data.
+
+11. granovaGG, https://github.com/briandk/granovaGG, provides tools to visualise ANOVA results.
+
+12. plotluck, https://github.com/stefan-schroedl/plotluck: the ggplot2 version of Google’s “I’m feeling lucky”. It automatically creates plots for one, two or three variables.
+
+- A great place to track new extensions is http://www.ggplot2-exts.org, by Daniel Emaasit.
+
+## References
+
+- Carr DB, Littlefield RJ, Nicholson WL, Littlefield JS (1987) Scatterplot matrix techniques for large N. J Am Stat Assoc 82(398):424–36 Carr D, Nicholas L-K, Martin M (2015) hexbin: hexagonal binning routines. R package version 1.27.1. https://CRAN.R-project.org/package=hexbin
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
